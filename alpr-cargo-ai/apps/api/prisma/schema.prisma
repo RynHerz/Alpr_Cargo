@@ -1,0 +1,82 @@
+// Schema ini dipetakan langsung dari src/lib/alpr/types.ts di frontend kamu.
+// DetectionResult -> model Detection
+// WhitelistRule    -> model WhitelistRule
+// CargoItem        -> model CargoItem (relasi ke Detection lewat cargoManifest)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite" // ganti ke "postgresql" kalau sudah siap production
+  url      = env("DATABASE_URL")
+}
+
+model Detection {
+  id                 String   @id @default(cuid())
+  timestamp          BigInt
+  sourceImageUrl     String // ganti dari base64 -> URL hasil upload
+  plateCropImageUrl  String
+  enhancedPlateImageUrl String?
+  plateNumber        String
+  formattedPlate     String
+  expiryDate         String?
+  confidence         Float
+  bboxX              Float
+  bboxY              Float
+  bboxWidth          Float
+  bboxHeight         Float
+  method             String // 'cv_contour' | 'onnx_yolo' | 'center_roi' | 'manual'
+  vehicleType        String?
+  status             String // 'registered' | 'vip' | 'blacklist' | 'unknown'
+  notes              String?
+  processingTimeMs   Int
+  createdAt          DateTime @default(now())
+
+  cargoManifest CargoManifest?
+
+  @@index([plateNumber])
+  @@index([status])
+}
+
+model CargoManifest {
+  id               String   @id @default(cuid())
+  detectionId      String   @unique
+  detection        Detection @relation(fields: [detectionId], references: [id], onDelete: Cascade)
+  driverName       String
+  driverPhone      String?
+  companyName      String?
+  destination      String?
+  documentNumber   String?
+  cargoCategory    String?
+  loadStatus       String
+  totalWeightKg    Float?
+  totalItemsCount  Int?
+  sealNumber       String?
+  inspectionStatus String
+  inspectorNotes   String?
+  updatedAt        DateTime @updatedAt
+
+  items CargoItem[]
+}
+
+model CargoItem {
+  id              String   @id @default(cuid())
+  manifestId      String
+  manifest        CargoManifest @relation(fields: [manifestId], references: [id], onDelete: Cascade)
+  name            String
+  category        String
+  quantity        Int
+  unit            String
+  weightKg        Float?
+  notes           String?
+}
+
+model WhitelistRule {
+  plateNumber String   @id
+  ownerName   String
+  status      String // 'registered' | 'vip' | 'blacklist'
+  vehicleType String
+  notes       String?
+  addedAt     BigInt
+}
