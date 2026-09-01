@@ -4,6 +4,10 @@ import detectionsRouter from './routes/detections';
 import whitelistRouter from './routes/whitelist';
 import uploadsRouter from './routes/uploads';
 
+(BigInt.prototype as any).toJSON = function () {
+  return Number(this);
+};
+
 const app = express();
 const PORT = process.env.PORT || 4000;
 
