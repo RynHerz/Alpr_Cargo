@@ -2,12 +2,10 @@
 
 import React, { useState } from 'react';
 import {
-  History,
   Search,
   Download,
   Trash2,
   ExternalLink,
-  Filter,
   Clock,
   Printer,
 } from 'lucide-react';

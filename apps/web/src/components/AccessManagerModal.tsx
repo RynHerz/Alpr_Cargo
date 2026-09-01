@@ -25,7 +25,7 @@ export const AccessManagerModal: React.FC<AccessManagerModalProps> = ({
   const [newPlate, setNewPlate] = useState<string>('');
   const [newOwner, setNewOwner] = useState<string>('');
   const [newStatus, setNewStatus] = useState<WhitelistRule['status']>('registered');
-  const [newVehicleType, setNewVehicleType] = useState<string>('Mobil');
+  const [newVehicleType] = useState<string>('Mobil');
   const [newNotes, setNewNotes] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
@@ -117,7 +117,7 @@ export const AccessManagerModal: React.FC<AccessManagerModalProps> = ({
                 <label className="text-[11px] text-muted-foreground mb-1 block">Status Hak Akses</label>
                 <select
                   value={newStatus}
-                  onChange={(e) => setNewStatus(e.target.value as any)}
+                  onChange={(e) => setNewStatus(e.target.value as WhitelistRule['status'])}
                   className="flex h-8 w-full rounded-md border border-input bg-card px-2 py-1 text-xs text-foreground shadow-sm focus-visible:outline-none"
                 >
                   <option value="registered">Terdaftar / Diizinkan</option>

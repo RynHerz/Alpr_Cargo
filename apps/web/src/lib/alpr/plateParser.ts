@@ -119,8 +119,6 @@ export function parseIndonesianPlate(rawText: string, rawConfidence: number = 80
 
   let formattedPlate = '';
   let prefix = '';
-  let number = '';
-  let suffix = '';
   let isValid = false;
   let score = rawConfidence;
 
@@ -132,8 +130,6 @@ export function parseIndonesianPlate(rawText: string, rawConfidence: number = 80
 
     if (p.length >= 1 && n.length >= 1) {
       prefix = p;
-      number = n;
-      suffix = s;
       formattedPlate = `${p} ${n} ${s}`.trim();
       isValid = VALID_INDONESIA_PREFIXES.has(p) && /^[0-9]{1,4}$/.test(n);
       score = isValid ? Math.max(92, score + 10) : score;
@@ -152,8 +148,6 @@ export function parseIndonesianPlate(rawText: string, rawConfidence: number = 80
       const s = repairSuffix(t2);
       if (p && n) {
         prefix = p;
-        number = n;
-        suffix = s;
         formattedPlate = `${p} ${n} ${s}`.trim();
         isValid = VALID_INDONESIA_PREFIXES.has(p) && /^[0-9]{1,4}$/.test(n);
         score = isValid ? Math.max(88, score + 8) : score;
@@ -169,8 +163,6 @@ export function parseIndonesianPlate(rawText: string, rawConfidence: number = 80
         const s = repairSuffix(m2[2]);
         if (p && n) {
           prefix = p;
-          number = n;
-          suffix = s;
           formattedPlate = `${p} ${n} ${s}`.trim();
           isValid = VALID_INDONESIA_PREFIXES.has(p) && /^[0-9]{1,4}$/.test(n);
           score = isValid ? Math.max(88, score + 8) : score;
@@ -190,8 +182,6 @@ export function parseIndonesianPlate(rawText: string, rawConfidence: number = 80
       const n = matchCompact[2];
       const s = matchCompact[3] || '';
       prefix = p;
-      number = n;
-      suffix = s;
       formattedPlate = `${p} ${n} ${s}`.trim();
       isValid = VALID_INDONESIA_PREFIXES.has(p);
       score = isValid ? Math.max(90, score + 6) : score;
@@ -212,8 +202,6 @@ export function parseIndonesianPlate(rawText: string, rawConfidence: number = 80
 
         if (p && n) {
           prefix = p;
-          number = n;
-          suffix = s;
           formattedPlate = `${p} ${n} ${s}`.trim();
           isValid = VALID_INDONESIA_PREFIXES.has(p) && /^[0-9]{1,4}$/.test(n);
           score = isValid ? Math.max(85, score) : score;

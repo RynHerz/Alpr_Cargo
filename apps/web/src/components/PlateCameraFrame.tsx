@@ -15,7 +15,6 @@ import {
   CheckCircle2,
   X,
   Eye,
-  Sliders,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -138,15 +137,16 @@ export const PlateCameraFrame: React.FC<PlateCameraFrameProps> = ({
       // Check flashlight/torch support
       const videoTrack = stream.getVideoTracks()[0];
       if (videoTrack) {
-        const capabilities = (videoTrack.getCapabilities?.() as any) || {};
+        const capabilities = (videoTrack.getCapabilities?.() as (MediaTrackCapabilities & { torch?: boolean }) | undefined) || {};
         setHasTorchSupport(Boolean(capabilities.torch));
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('PlateCameraFrame camera error:', err);
       let errorMsg = 'Tidak dapat mengakses perangkat kamera. Pastikan kamera terpasang dan tidak digunakan aplikasi lain.';
-      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+      const errorName = err instanceof Error ? err.name : '';
+      if (errorName === 'NotAllowedError' || errorName === 'PermissionDeniedError') {
         errorMsg = 'Izin kamera ditolak. Silakan izinkan akses kamera pada pengaturan browser Anda.';
-      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+      } else if (errorName === 'NotFoundError' || errorName === 'DevicesNotFoundError') {
         errorMsg = 'Tidak ditemukan perangkat kamera pada perangkat ini.';
       }
       setCameraError(errorMsg);
@@ -157,6 +157,7 @@ export const PlateCameraFrame: React.FC<PlateCameraFrameProps> = ({
   // Lifecycle: start camera when not in preview mode
   useEffect(() => {
     if (!capturedResult) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing to external camera hardware based on facingMode change, legitimate effect usage
       startCameraStream();
     }
     return () => {
@@ -171,8 +172,8 @@ export const PlateCameraFrame: React.FC<PlateCameraFrameProps> = ({
     if (track && hasTorchSupport) {
       try {
         const nextState = !torchOn;
-        await (track.applyConstraints as any)({
-          advanced: [{ torch: nextState }],
+        await track.applyConstraints({
+          advanced: [{ torch: nextState } as MediaTrackConstraintSet & { torch?: boolean }],
         });
         setTorchOn(nextState);
       } catch (err) {

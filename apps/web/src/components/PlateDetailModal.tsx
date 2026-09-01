@@ -13,7 +13,6 @@ import {
 } from 'lucide-react';
 import { DetectionResult, WhitelistRule } from '@alpr/shared-types';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
   Table,
   TableBody,

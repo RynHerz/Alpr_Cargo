@@ -4,7 +4,6 @@ import React, { useState, useRef } from 'react';
 import {
   Upload,
   Camera,
-  Image as ImageIcon,
   Play,
   RefreshCw,
   FileCheck,
@@ -35,7 +34,6 @@ export const VehicleInspector: React.FC<VehicleInspectorProps> = ({
   onNewDetection,
   whitelistRules,
   soundEnabled,
-  onOpenPlateDetail,
   onOpenGatePassSlip,
 }) => {
   const [selectedFileType, setSelectedFileType] = useState<'image' | 'video' | null>(null);
@@ -136,7 +134,7 @@ export const VehicleInspector: React.FC<VehicleInspectorProps> = ({
 
       drawBoundingBoxes(results, imageElementRef.current);
       setStatusMessage(`Selesai: ${results.length} kendaraan/plat nomor teridentifikasi.`);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
       setStatusMessage('Gagal menganalisis gambar. Coba lagi dengan pencahayaan yang lebih baik.');
     } finally {
@@ -161,7 +159,7 @@ export const VehicleInspector: React.FC<VehicleInspectorProps> = ({
       });
 
       setStatusMessage(`Frame terbaca: ${results.length} plat terdeteksi.`);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
       setStatusMessage('Gagal membaca frame video.');
     } finally {
@@ -355,6 +353,11 @@ export const VehicleInspector: React.FC<VehicleInspectorProps> = ({
                         <RefreshCw className={`w-3 h-3 ${isProcessing ? 'animate-spin' : ''}`} />
                         Pindai Ulang
                       </Button>
+                    )}
+                    {statusMessage && (
+                      <span className="text-[11px] text-muted-foreground self-center">
+                        {statusMessage}
+                      </span>
                     )}
                   </div>
                 </div>

@@ -1,4 +1,4 @@
-import { BoundingBox, DetectionResult, PlateCandidate, WhitelistRule } from '@alpr/shared-types';
+import { DetectionResult, PlateCandidate, WhitelistRule } from '@alpr/shared-types';
 import { createCanvasFromSource, locatePlateCandidates } from './platePreprocessor';
 import { recognizePlateFromCanvas, playDetectionAudioBeep } from './ocrEngine';
 import { detectPlatesWithOnnx, getOnnxStatus } from './onnxDetector';
@@ -120,7 +120,7 @@ export async function runAlprPipelineMulti(
 
     if (matchedRule) {
       status = matchedRule.status;
-      autoVehicleType = (matchedRule.vehicleType as any) || autoVehicleType;
+      autoVehicleType = (matchedRule.vehicleType as DetectionResult['vehicleType']) || autoVehicleType;
       notes = `${matchedRule.ownerName}${matchedRule.notes ? ` - ${matchedRule.notes}` : ''}`;
     } else if (ocr.isValidFormat) {
       status = 'registered';

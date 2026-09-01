@@ -33,7 +33,7 @@ export async function loadCharDetector(modelSource: string | ArrayBuffer = '/mod
       ? [modelSource, '/models/char_best.onnx', '/models/char_detector.onnx']
       : [modelSource];
 
-  let lastError: any = null;
+  let lastError: unknown = null;
 
   for (const url of candidateUrls) {
     try {
@@ -52,13 +52,17 @@ export async function loadCharDetector(modelSource: string | ArrayBuffer = '/mod
   }
 
   isCharLoading = false;
-  charLoadError = lastError?.message || 'Gagal memuat model karakter ONNX';
+  charLoadError = (lastError instanceof Error ? lastError.message : String(lastError ?? '')) || 'Gagal memuat model karakter ONNX';
   console.warn('Char Detector load notice:', charLoadError);
   throw lastError || new Error(charLoadError!);
 }
 
 export function isCharDetectorLoaded(): boolean {
   return !!charSession;
+}
+
+export function isCharDetectorLoading(): boolean {
+  return isCharLoading;
 }
 
 interface DetectedChar {

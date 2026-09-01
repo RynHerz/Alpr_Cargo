@@ -46,7 +46,7 @@ export const LiveCameraScanner: React.FC<LiveCameraScannerProps> = ({
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [currentDetection, setCurrentDetection] = useState<DetectionResult | null>(null);
   const [fps, setFps] = useState<number>(0);
-  const [scanSpeedMs, setScanSpeedMs] = useState<number>(1200);
+  const [scanSpeedMs] = useState<number>(1200);
 
   // Start Camera Stream
   const startCamera = useCallback(async () => {
@@ -78,13 +78,14 @@ export const LiveCameraScanner: React.FC<LiveCameraScannerProps> = ({
       // Check flashlight / torch capability
       const videoTrack = stream.getVideoTracks()[0];
       if (videoTrack) {
-        const capabilities = (videoTrack.getCapabilities?.() as any) || {};
+        const capabilities = (videoTrack.getCapabilities?.() as (MediaTrackCapabilities & { torch?: boolean }) | undefined) || {};
         setHasTorchSupport(!!capabilities.torch);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Camera access error:', err);
+      const isNotAllowed = err instanceof Error && err.name === 'NotAllowedError';
       setCameraError(
-        err.name === 'NotAllowedError'
+        isNotAllowed
           ? 'Izin kamera ditolak. Silakan izinkan akses kamera pada browser Anda.'
           : 'Tidak dapat mengakses perangkat kamera. Pastikan kamera terpasang dan tidak dipakai aplikasi lain.'
       );
@@ -116,8 +117,8 @@ export const LiveCameraScanner: React.FC<LiveCameraScannerProps> = ({
     if (track && hasTorchSupport) {
       try {
         const newTorchState = !torchOn;
-        await (track.applyConstraints as any)({
-          advanced: [{ torch: newTorchState }],
+        await track.applyConstraints({
+          advanced: [{ torch: newTorchState } as MediaTrackConstraintSet & { torch?: boolean }],
         });
         setTorchOn(newTorchState);
       } catch (err) {
@@ -148,7 +149,7 @@ export const LiveCameraScanner: React.FC<LiveCameraScannerProps> = ({
         setCurrentDetection(result);
         onNewDetection(result);
       }
-    } catch (err) {
+    } catch {
       // Background scan frame ignore error
     } finally {
       setIsScanning(false);
@@ -157,6 +158,7 @@ export const LiveCameraScanner: React.FC<LiveCameraScannerProps> = ({
 
   // Start / restart camera when facing mode changes
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing to external camera hardware based on facingMode change, legitimate effect usage
     startCamera();
     return () => {
       stopCamera();

@@ -1,4 +1,4 @@
-import { createWorker, Worker } from 'tesseract.js';
+import { createWorker, Worker, PSM } from 'tesseract.js';
 import { OcrResult } from '@alpr/shared-types';
 import { parseIndonesianPlate } from './plateParser';
 import { cropTopLineRoi, enhancePlateForOcr } from './platePreprocessor';
@@ -24,7 +24,7 @@ export async function getOcrWorker(): Promise<Worker> {
       // PSM 6 = Assume a single uniform block of text (far superior for 2-line Indonesian license plates)
       await worker.setParameters({
         tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.- ',
-        tessedit_pageseg_mode: '6' as unknown as any,
+        tessedit_pageseg_mode: PSM.SINGLE_BLOCK,
       });
 
       ocrWorker = worker;
@@ -77,7 +77,7 @@ export async function recognizePlateFromCanvas(canvas: HTMLCanvasElement, enhanc
           return parsed;
         }
       }
-    } catch (e) {
+    } catch {
       // Continue to next variant
     }
   }
@@ -89,6 +89,10 @@ export async function recognizePlateFromCanvas(canvas: HTMLCanvasElement, enhanc
   }
 
   return parseIndonesianPlate('', 0);
+}
+
+export function isOcrInitializing(): boolean {
+  return isInitializing;
 }
 
 /**
@@ -126,5 +130,5 @@ export function playDetectionAudioBeep(isSuccess: boolean = true) {
       osc.start();
       osc.stop(ctx.currentTime + 0.18);
     }
-  } catch (err) {}
+  } catch {}
 }

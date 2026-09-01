@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Package,
   Plus,
@@ -95,12 +95,6 @@ export const VehicleCargoForm: React.FC<VehicleCargoFormProps> = ({
   const [newItemWeight, setNewItemWeight] = useState<number>(50);
   const [newItemNotes, setNewItemNotes] = useState('');
 
-  useEffect(() => {
-    if (initialManifest) {
-      setManifest(initialManifest);
-    }
-  }, [initialManifest]);
-
   const updateManifestWithTotals = (updatedItems: CargoItem[]) => {
     const totalCount = updatedItems.reduce((acc, it) => acc + (Number(it.quantity) || 0), 0);
     const totalWeight = updatedItems.reduce((acc, it) => acc + (Number(it.weightKg) || 0), 0);
@@ -110,6 +104,7 @@ export const VehicleCargoForm: React.FC<VehicleCargoFormProps> = ({
       items: updatedItems,
       totalItemsCount: totalCount,
       totalWeightKg: totalWeight,
+      // eslint-disable-next-line react-hooks/purity -- generated during user action handler, safe from render impurity
       updatedAt: Date.now(),
     };
     setManifest(updated);
@@ -121,6 +116,7 @@ export const VehicleCargoForm: React.FC<VehicleCargoFormProps> = ({
     if (!newItemName.trim()) return;
 
     const newItem: CargoItem = {
+      // eslint-disable-next-line react-hooks/purity -- generated during user submission action, safe from render impurity
       id: `item-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       name: newItemName.trim(),
       category: newItemCategory,
@@ -301,7 +297,7 @@ export const VehicleCargoForm: React.FC<VehicleCargoFormProps> = ({
             </label>
             <select
               value={manifest.loadStatus}
-              onChange={(e) => handleChangeField('loadStatus', e.target.value as any)}
+              onChange={(e) => handleChangeField('loadStatus', e.target.value as VehicleCargoManifest['loadStatus'])}
               className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-xs text-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
             >
               <option value="Penuh (Full Load)">🚚 Penuh (Full Load)</option>
@@ -317,7 +313,7 @@ export const VehicleCargoForm: React.FC<VehicleCargoFormProps> = ({
             </label>
             <select
               value={manifest.inspectionStatus}
-              onChange={(e) => handleChangeField('inspectionStatus', e.target.value as any)}
+              onChange={(e) => handleChangeField('inspectionStatus', e.target.value as VehicleCargoManifest['inspectionStatus'])}
               className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-xs font-semibold text-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
             >
               <option value="Sesuai (Approved)">✅ Sesuai (Approved / Lolos Masuk)</option>

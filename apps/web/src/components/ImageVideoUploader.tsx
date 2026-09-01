@@ -4,15 +4,10 @@ import React, { useState, useRef } from 'react';
 import {
   Upload,
   Image as ImageIcon,
-  Video as VideoIcon,
   Play,
-  Pause,
   RefreshCw,
   Sparkles,
-  CheckCircle2,
   FileCheck,
-  Eye,
-  Sliders,
 } from 'lucide-react';
 import { DetectionResult, WhitelistRule } from '@alpr/shared-types';
 import { runAlprPipeline } from '../lib/alpr/pipeline';
@@ -81,9 +76,10 @@ export const ImageVideoUploader: React.FC<ImageVideoUploaderProps> = ({
       setDetectionResult(result);
       onNewDetection(result);
       setStatusMessage(`Selesai! Terdeteksi dalam ${result.processingTimeMs} ms.`);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setStatusMessage('Gagal mendeteksi plat: ' + (err.message || 'Error tidak diketahui'));
+      const msg = err instanceof Error ? err.message : 'Error tidak diketahui';
+      setStatusMessage('Gagal mendeteksi plat: ' + msg);
     } finally {
       setIsProcessing(false);
     }
@@ -100,7 +96,7 @@ export const ImageVideoUploader: React.FC<ImageVideoUploaderProps> = ({
       setDetectionResult(result);
       onNewDetection(result);
       setStatusMessage(`Frame terbaca dalam ${result.processingTimeMs} ms.`);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
       setStatusMessage('Gagal membaca frame video.');
     } finally {
@@ -234,11 +230,15 @@ export const ImageVideoUploader: React.FC<ImageVideoUploaderProps> = ({
             <h3 className="text-sm font-semibold text-white flex items-center gap-2">
               <FileCheck className="w-4 h-4 text-cyan-400" /> Hasil Analisis OCR
             </h3>
-            {isProcessing && (
+            {isProcessing ? (
               <span className="text-[11px] text-cyan-400 font-mono flex items-center gap-1">
                 <RefreshCw className="w-3 h-3 animate-spin" /> Memproses...
               </span>
-            )}
+            ) : statusMessage ? (
+              <span className="text-[11px] text-slate-400 font-mono">
+                {statusMessage}
+              </span>
+            ) : null}
           </div>
 
           {detectionResult ? (

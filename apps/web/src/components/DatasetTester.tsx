@@ -36,8 +36,6 @@ interface DatasetTesterProps {
 export const DatasetTester: React.FC<DatasetTesterProps> = ({
   onNewDetection,
   whitelistRules,
-  soundEnabled,
-  onOpenPlateDetail,
 }) => {
   const [items, setItems] = useState<DatasetItem[]>([]);
   const [isEvaluating, setIsEvaluating] = useState<boolean>(false);
@@ -129,7 +127,7 @@ export const DatasetTester: React.FC<DatasetTesterProps> = ({
         }
 
         onNewDetection(detection);
-      } catch (err) {
+      } catch {
         current.status = 'failed';
         current.detectedPlate = 'Gagal';
         current.confidence = 0;
@@ -293,13 +291,11 @@ print("Model berhasil diekspor! File tersimpan di: runs/detect/train/weights/bes
               </Button>
 
               {/* Hidden Inputs */}
-              {/* @ts-ignore */}
               <input
                 ref={folderInputRef}
                 type="file"
-                // @ts-ignore
+                // @ts-expect-error webkitdirectory is a non-standard browser attribute for folder selection
                 webkitdirectory="true"
-                // @ts-ignore
                 directory="true"
                 multiple
                 onChange={handleFilesSelected}

@@ -121,6 +121,7 @@ export default function Home() {
     try {
       const savedSound = localStorage.getItem('alpr_sound');
       if (savedSound !== null) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- legitimate one-time initialization from localStorage on mount
         setSoundEnabled(savedSound === 'true');
       }
     } catch (e) {
@@ -160,7 +161,7 @@ export default function Home() {
           spread: 60,
           origin: { y: 0.7 },
         });
-      } catch (e) {}
+      } catch {}
     }
   };
 

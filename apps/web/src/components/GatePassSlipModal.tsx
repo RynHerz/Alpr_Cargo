@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef } from 'react';
+import React, { useRef, useState, useMemo } from 'react';
 import {
   X,
   Printer,
@@ -23,28 +23,34 @@ export const GatePassSlipModal: React.FC<GatePassSlipModalProps> = ({
   onClose,
 }) => {
   const printAreaRef = useRef<HTMLDivElement | null>(null);
+  const [fallbackTimestamp] = useState(() => Date.now());
+  const fallbackDocNumber = useMemo(() => `GP-${fallbackTimestamp}`, [fallbackTimestamp]);
+
+  const defaultManifest: VehicleCargoManifest = useMemo(
+    () => ({
+      driverName: 'Pengemudi / Sopir',
+      driverPhone: '-',
+      companyName: '-',
+      destination: 'Gudang Utama',
+      documentNumber: 'SJ-2026-XXXX',
+      cargoCategory: 'Logistik Umum',
+      loadStatus: 'Penuh (Full Load)',
+      totalWeightKg: 0,
+      totalItemsCount: 0,
+      sealNumber: '',
+      inspectionStatus: 'Sesuai (Approved)',
+      inspectorNotes: 'Pemeriksaan standar.',
+      items: [],
+      updatedAt: fallbackTimestamp,
+    }),
+    [fallbackTimestamp]
+  );
 
   if (!result && !explicitManifest) return null;
 
-  const manifest = explicitManifest || result?.cargoManifest || {
-    driverName: 'Pengemudi / Sopir',
-    driverPhone: '-',
-    companyName: '-',
-    destination: 'Gudang Utama',
-    documentNumber: 'SJ-2026-XXXX',
-    cargoCategory: 'Logistik Umum',
-    loadStatus: 'Penuh (Full Load)',
-    totalWeightKg: 0,
-    totalItemsCount: 0,
-    sealNumber: '',
-    inspectionStatus: 'Sesuai (Approved)',
-    inspectorNotes: 'Pemeriksaan standar.',
-    items: [],
-    updatedAt: Date.now(),
-  };
-
+  const manifest = explicitManifest || result?.cargoManifest || defaultManifest;
   const plateNumber = result?.formattedPlate || 'B 1234 ABC';
-  const timestamp = result?.timestamp || Date.now();
+  const timestamp = result?.timestamp || fallbackTimestamp;
   const expiryDate = result?.expiryDate || '08.28';
   const vehicleType = result?.vehicleType || 'Mobil / Truk';
 
@@ -124,7 +130,7 @@ export const GatePassSlipModal: React.FC<GatePassSlipModalProps> = ({
                 ))}
               </div>
               <span className="text-[8px] font-mono font-medium tracking-widest text-slate-600 mt-0.5">
-                *{manifest.documentNumber || `GP-${Date.now()}`}*
+                *{manifest.documentNumber || fallbackDocNumber}*
               </span>
             </div>
           </div>

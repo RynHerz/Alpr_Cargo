@@ -34,7 +34,7 @@ export async function loadOnnxModel(modelSource: string | ArrayBuffer = '/models
       ? [modelSource, '/models/best.onnx', '/models/plate_detector.onnx']
       : [modelSource];
 
-  let lastError: any = null;
+  let lastError: unknown = null;
 
   for (const url of candidateUrls) {
     try {
@@ -54,7 +54,7 @@ export async function loadOnnxModel(modelSource: string | ArrayBuffer = '/models
   }
 
   isModelLoading = false;
-  modelLoadError = lastError?.message || 'Gagal memuat model Plat ONNX';
+  modelLoadError = (lastError instanceof Error ? lastError.message : String(lastError ?? '')) || 'Gagal memuat model Plat ONNX';
   console.warn('ONNX Model Load Notice:', modelLoadError);
   throw lastError || new Error(modelLoadError!);
 }
