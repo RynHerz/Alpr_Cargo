@@ -1,6 +1,10 @@
 {
   "name": "alpr-cargo-ai",
+  "packageManager": "pnpm@11.25.0",
   "private": true,
+  "engines": {
+    "node": "20.x"
+  },
   "workspaces": [
     "apps/*",
     "packages/*"
