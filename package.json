@@ -1,6 +1,5 @@
 {
   "name": "alpr-cargo-ai",
-  "packageManager": "pnpm@9.15.9",
   "private": true,
   "engines": {
     "node": "20.x"
