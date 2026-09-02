@@ -10,7 +10,6 @@
     "prisma:migrate": "prisma migrate dev"
   },
   "dependencies": {
-    "@alpr/shared-types": "file:../../packages/shared-types",
     "@prisma/client": "^6.1.0",
     "cors": "^2.8.5",
     "express": "^4.21.2",
