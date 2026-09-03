@@ -10,6 +10,7 @@ import {
   Package,
   Printer,
   User,
+  Edit2,
 } from 'lucide-react';
 import { DetectionResult, WhitelistRule } from '@alpr/shared-types';
 import { Button } from '@/components/ui/button';
@@ -32,6 +33,7 @@ interface PlateDetailModalProps {
     notes?: string
   ) => void;
   onOpenGatePassSlip?: (result: DetectionResult) => void;
+  onEditDetection?: (result: DetectionResult) => void;
 }
 
 export const PlateDetailModal: React.FC<PlateDetailModalProps> = ({
@@ -39,6 +41,7 @@ export const PlateDetailModal: React.FC<PlateDetailModalProps> = ({
   onClose,
   onUpdateStatus,
   onOpenGatePassSlip,
+  onEditDetection,
 }) => {
   const [activeTab, setActiveTab] = useState<'ocr' | 'cargo'>('ocr');
 
@@ -60,6 +63,19 @@ export const PlateDetailModal: React.FC<PlateDetailModalProps> = ({
             <h3 className="text-sm font-semibold text-foreground">Detail Inspeksi Plat & Muatan</h3>
           </div>
           <div className="flex items-center gap-2">
+            {onEditDetection && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  onClose();
+                  onEditDetection(result);
+                }}
+                className="h-8 text-xs gap-1.5 text-primary border-primary/30 hover:bg-primary/10"
+              >
+                <Edit2 className="w-3.5 h-3.5" /> Edit Data
+              </Button>
+            )}
             {onOpenGatePassSlip && (
               <Button
                 size="sm"

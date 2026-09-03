@@ -69,3 +69,6 @@ Desktop.ini
 .vscode/
 *.sublime-workspace
 *.sublime-project
+
+# Graphify Local Outputs
+graphify-out/

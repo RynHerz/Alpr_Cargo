@@ -8,6 +8,7 @@ import {
   ExternalLink,
   Clock,
   Printer,
+  Edit2,
 } from 'lucide-react';
 import { DetectionResult } from '@alpr/shared-types';
 import { Button } from '@/components/ui/button';
@@ -28,6 +29,8 @@ interface DetectionHistoryProps {
   onClearHistory: () => void;
   onOpenPlateDetail: (result: DetectionResult) => void;
   onOpenGatePassSlip?: (result: DetectionResult) => void;
+  onEditDetection?: (result: DetectionResult) => void;
+  onDeleteDetection?: (id: string) => void;
 }
 
 export const DetectionHistory: React.FC<DetectionHistoryProps> = ({
@@ -35,6 +38,8 @@ export const DetectionHistory: React.FC<DetectionHistoryProps> = ({
   onClearHistory,
   onOpenPlateDetail,
   onOpenGatePassSlip,
+  onEditDetection,
+  onDeleteDetection,
 }) => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -336,9 +341,36 @@ export const DetectionHistory: React.FC<DetectionHistoryProps> = ({
                             size="sm"
                             onClick={() => onOpenPlateDetail(item)}
                             className="h-7 text-[11px] px-2 text-muted-foreground hover:text-foreground"
+                            title="Lihat Detail Lengkap"
                           >
                             <ExternalLink className="w-3 h-3" />
                           </Button>
+                          {onEditDetection && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => onEditDetection(item)}
+                              className="h-7 text-[11px] px-2 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                              title="Edit Data Kendaraan"
+                            >
+                              <Edit2 className="w-3 h-3 text-primary" />
+                            </Button>
+                          )}
+                          {onDeleteDetection && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                if (window.confirm(`Hapus riwayat kendaraan ${item.formattedPlate}?`)) {
+                                  onDeleteDetection(item.id);
+                                }
+                              }}
+                              className="h-7 text-[11px] px-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                              title="Hapus Kendaraan Ini"
+                            >
+                              <Trash2 className="w-3 h-3 text-destructive" />
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>

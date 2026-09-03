@@ -9,6 +9,7 @@ import { DetectionHistory } from '../components/DetectionHistory';
 import { PlateDetailModal } from '../components/PlateDetailModal';
 import { AccessManagerModal } from '../components/AccessManagerModal';
 import { GatePassSlipModal } from '../components/GatePassSlipModal';
+import { EditVehicleModal } from '../components/EditVehicleModal';
 import { DetectionResult, WhitelistRule } from '@alpr/shared-types';
 import { INITIAL_WHITELIST_RULES, DEMO_SAMPLES } from '../lib/alpr/sampleData';
 import { getOcrWorker } from '../lib/alpr/ocrEngine';
@@ -87,6 +88,7 @@ export default function Home() {
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [selectedPlateDetail, setSelectedPlateDetail] = useState<DetectionResult | null>(null);
   const [selectedGatePassResult, setSelectedGatePassResult] = useState<DetectionResult | null>(null);
+  const [selectedEditResult, setSelectedEditResult] = useState<DetectionResult | null>(null);
   const [isAccessManagerOpen, setIsAccessManagerOpen] = useState<boolean>(false);
 
   // Pre-warm Tesseract.js WASM worker and 2-Stage ONNX models on page load
@@ -273,6 +275,28 @@ export default function Home() {
     }).catch(() => {});
   };
 
+  const handleDeleteDetection = (id: string) => {
+    const updated = history.filter((item) => item.id !== id);
+    setHistory(updated);
+    saveLocalHistory(updated);
+
+    fetch(`${API_BASE_URL}/api/detections/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    }).catch(() => {});
+  };
+
+  const handleSaveEditedDetection = (updatedResult: DetectionResult) => {
+    const updated = history.map((item) => (item.id === updatedResult.id ? updatedResult : item));
+    setHistory(updated);
+    saveLocalHistory(updated);
+
+    fetch(`${API_BASE_URL}/api/detections/${encodeURIComponent(updatedResult.id)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updatedResult),
+    }).catch(() => {});
+  };
+
   const handleUpdateStatusFromDetail = (
     plateNumber: string,
     status: WhitelistRule['status'],
@@ -332,6 +356,8 @@ export default function Home() {
             onClearHistory={handleClearHistory}
             onOpenPlateDetail={(res) => setSelectedPlateDetail(res)}
             onOpenGatePassSlip={(res) => setSelectedGatePassResult(res)}
+            onEditDetection={(res) => setSelectedEditResult(res)}
+            onDeleteDetection={handleDeleteDetection}
           />
         )}
       </main>
@@ -352,6 +378,7 @@ export default function Home() {
         onClose={() => setSelectedPlateDetail(null)}
         onUpdateStatus={handleUpdateStatusFromDetail}
         onOpenGatePassSlip={(res) => setSelectedGatePassResult(res)}
+        onEditDetection={(res) => setSelectedEditResult(res)}
       />
 
       <GatePassSlipModal
@@ -365,6 +392,13 @@ export default function Home() {
         rules={whitelistRules}
         onAddRule={handleAddRule}
         onDeleteRule={handleDeleteRule}
+      />
+
+      <EditVehicleModal
+        isOpen={!!selectedEditResult}
+        result={selectedEditResult}
+        onClose={() => setSelectedEditResult(null)}
+        onSave={handleSaveEditedDetection}
       />
     </div>
   );
