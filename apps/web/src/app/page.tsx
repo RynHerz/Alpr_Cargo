@@ -17,6 +17,67 @@ import { loadCharDetector } from '../lib/alpr/charDetector';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
+const LOCAL_STORAGE_KEYS = {
+  HISTORY: 'alpr_history',
+  WHITELIST: 'alpr_whitelist',
+  SOUND: 'alpr_sound',
+};
+
+const MAX_LOCAL_HISTORY = 50;
+
+function saveLocalHistory(data: DetectionResult[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const trimmed = data.slice(0, MAX_LOCAL_HISTORY);
+    localStorage.setItem(LOCAL_STORAGE_KEYS.HISTORY, JSON.stringify(trimmed));
+  } catch (err) {
+    try {
+      const compact = data.slice(0, 25).map((item) => ({
+        ...item,
+        sourceImage: item.sourceImage && item.sourceImage.length > 200000 ? item.plateCropImage : item.sourceImage,
+      }));
+      localStorage.setItem(LOCAL_STORAGE_KEYS.HISTORY, JSON.stringify(compact));
+    } catch (e2) {
+      console.warn('LocalStorage quota reached, could not persist full history:', e2);
+    }
+  }
+}
+
+function loadLocalHistory(): DetectionResult[] | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_KEYS.HISTORY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : null;
+  } catch (err) {
+    console.warn('Failed to parse history from localStorage:', err);
+    return null;
+  }
+}
+
+function saveLocalWhitelist(rules: WhitelistRule[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(LOCAL_STORAGE_KEYS.WHITELIST, JSON.stringify(rules));
+  } catch (err) {
+    console.warn('Failed to save whitelist to localStorage:', err);
+  }
+}
+
+function loadLocalWhitelist(): WhitelistRule[] | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_KEYS.WHITELIST);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : null;
+  } catch (err) {
+    console.warn('Failed to parse whitelist from localStorage:', err);
+    return null;
+  }
+}
+
 export default function Home() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('inspect');
   const [history, setHistory] = useState<DetectionResult[]>([]);
@@ -47,9 +108,44 @@ export default function Home() {
     });
   }, []);
 
-  // Load persisted history & whitelist from backend API
+  // Load persisted history & whitelist (LocalStorage + Backend API sync)
   useEffect(() => {
-    // 1. Fetch History from Backend
+    // 1. Immediately hydrate from LocalStorage for instant UI and offline resiliency
+    const localHistory = loadLocalHistory();
+    const initialSeedHistory: DetectionResult[] = DEMO_SAMPLES.slice(0, 3).map((sample, idx) => ({
+      id: `seed-${sample.id}`,
+      timestamp: Date.now() - (idx + 1) * 1800000,
+      sourceImage: sample.dataUrl,
+      plateCropImage: sample.dataUrl,
+      plateNumber: sample.plate.replace(/\s+/g, ''),
+      formattedPlate: sample.plate,
+      expiryDate: sample.expiry,
+      confidence: 94 + idx * 2,
+      bbox: { x: 20, y: 20, width: 440, height: 140 },
+      method: 'cv_contour',
+      vehicleType: sample.vehicle,
+      status: idx === 0 ? 'vip' : idx === 1 ? 'blacklist' : 'registered',
+      notes: sample.name,
+      processingTimeMs: 140 + idx * 25,
+      cargoManifest: sample.defaultManifest,
+    }));
+
+    if (localHistory && localHistory.length > 0) {
+      setHistory(localHistory);
+    } else {
+      setHistory(initialSeedHistory);
+      saveLocalHistory(initialSeedHistory);
+    }
+
+    const localWhitelist = loadLocalWhitelist();
+    if (localWhitelist && localWhitelist.length > 0) {
+      setWhitelistRules(localWhitelist);
+    } else {
+      setWhitelistRules(INITIAL_WHITELIST_RULES);
+      saveLocalWhitelist(INITIAL_WHITELIST_RULES);
+    }
+
+    // 2. Asynchronously sync with Backend API if reachable
     fetch(`${API_BASE_URL}/api/detections`)
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -58,42 +154,24 @@ export default function Home() {
       .then((data: DetectionResult[]) => {
         if (Array.isArray(data) && data.length > 0) {
           setHistory(data);
+          saveLocalHistory(data);
         } else {
-          // If backend is empty on first load, seed with demo samples
-          const initialSeedHistory: DetectionResult[] = DEMO_SAMPLES.slice(0, 3).map((sample, idx) => ({
-            id: `seed-${sample.id}`,
-            timestamp: Date.now() - (idx + 1) * 1800000,
-            sourceImage: sample.dataUrl,
-            plateCropImage: sample.dataUrl,
-            plateNumber: sample.plate.replace(/\s+/g, ''),
-            formattedPlate: sample.plate,
-            expiryDate: sample.expiry,
-            confidence: 94 + idx * 2,
-            bbox: { x: 20, y: 20, width: 440, height: 140 },
-            method: 'cv_contour',
-            vehicleType: sample.vehicle,
-            status: idx === 0 ? 'vip' : idx === 1 ? 'blacklist' : 'registered',
-            notes: sample.name,
-            processingTimeMs: 140 + idx * 25,
-            cargoManifest: sample.defaultManifest,
-          }));
-          setHistory(initialSeedHistory);
-
-          // Save seed items to backend
-          initialSeedHistory.forEach((seedItem) => {
+          // If backend is empty on first load, seed with current local items
+          const toSeed = localHistory && localHistory.length > 0 ? localHistory : initialSeedHistory;
+          toSeed.forEach((seedItem) => {
             fetch(`${API_BASE_URL}/api/detections`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(seedItem),
-            }).catch((err) => console.warn('Seed sync error:', err));
+            }).catch(() => {});
           });
         }
       })
-      .catch((err) => {
-        console.warn('Could not fetch detection history from API:', err);
+      .catch(() => {
+        // Harmless fallback when backend is not deployed / unreachable
+        console.info('Backend API unavailable. Continuing in offline mode with LocalStorage persistence.');
       });
 
-    // 2. Fetch Whitelist from Backend
     fetch(`${API_BASE_URL}/api/whitelist`)
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -102,26 +180,26 @@ export default function Home() {
       .then((data: WhitelistRule[]) => {
         if (Array.isArray(data) && data.length > 0) {
           setWhitelistRules(data);
+          saveLocalWhitelist(data);
         } else {
-          // If backend is empty on first load, seed initial rules
-          INITIAL_WHITELIST_RULES.forEach((rule) => {
+          const rulesToSeed = localWhitelist && localWhitelist.length > 0 ? localWhitelist : INITIAL_WHITELIST_RULES;
+          rulesToSeed.forEach((rule) => {
             fetch(`${API_BASE_URL}/api/whitelist`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(rule),
-            }).catch((err) => console.warn('Whitelist seed error:', err));
+            }).catch(() => {});
           });
         }
       })
-      .catch((err) => {
-        console.warn('Could not fetch whitelist from API:', err);
+      .catch(() => {
+        // Whitelist API offline: harmless since local storage is active
       });
 
-    // 3. Local Sound Preference (kept in localStorage)
+    // 3. Local Sound Preference
     try {
-      const savedSound = localStorage.getItem('alpr_sound');
+      const savedSound = localStorage.getItem(LOCAL_STORAGE_KEYS.SOUND);
       if (savedSound !== null) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- legitimate one-time initialization from localStorage on mount
         setSoundEnabled(savedSound === 'true');
       }
     } catch (e) {
@@ -144,15 +222,14 @@ export default function Home() {
     }
 
     setHistory(updated);
+    saveLocalHistory(updated);
 
-    // Save to Backend API
+    // Save to Backend API if reachable
     fetch(`${API_BASE_URL}/api/detections`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(result),
-    }).catch((err) => {
-      console.error('Failed to post detection to API:', err);
-    });
+    }).catch(() => {});
 
     if (result.status === 'vip' && existingIndex < 0) {
       try {
@@ -167,35 +244,33 @@ export default function Home() {
 
   const handleClearHistory = () => {
     setHistory([]);
+    saveLocalHistory([]);
+
     fetch(`${API_BASE_URL}/api/detections`, {
       method: 'DELETE',
-    }).catch((err) => {
-      console.error('Failed to clear detections in API:', err);
-    });
+    }).catch(() => {});
   };
 
   const handleAddRule = (rule: WhitelistRule) => {
     const updated = [rule, ...whitelistRules.filter((r) => r.plateNumber !== rule.plateNumber)];
     setWhitelistRules(updated);
+    saveLocalWhitelist(updated);
 
     fetch(`${API_BASE_URL}/api/whitelist`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(rule),
-    }).catch((err) => {
-      console.error('Failed to save whitelist rule to API:', err);
-    });
+    }).catch(() => {});
   };
 
   const handleDeleteRule = (plateNumber: string) => {
     const updated = whitelistRules.filter((r) => r.plateNumber !== plateNumber);
     setWhitelistRules(updated);
+    saveLocalWhitelist(updated);
 
     fetch(`${API_BASE_URL}/api/whitelist/${encodeURIComponent(plateNumber)}`, {
       method: 'DELETE',
-    }).catch((err) => {
-      console.error('Failed to delete whitelist rule from API:', err);
-    });
+    }).catch(() => {});
   };
 
   const handleUpdateStatusFromDetail = (
@@ -226,7 +301,7 @@ export default function Home() {
         soundEnabled={soundEnabled}
         setSoundEnabled={(val) => {
           setSoundEnabled(val);
-          localStorage.setItem('alpr_sound', String(val));
+          localStorage.setItem(LOCAL_STORAGE_KEYS.SOUND, String(val));
         }}
         onOpenAccessManager={() => setIsAccessManagerOpen(true)}
       />
